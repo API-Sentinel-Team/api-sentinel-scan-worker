@@ -1,0 +1,95 @@
+id: XPATH_INJECTION_BY_QUERY_PARAM
+info:
+  name: "XPath Injection via Query Parameters"
+  description: "Tests for XPath injection vulnerabilities by injecting XPath metacharacters and expressions into query parameters."
+  details: >
+    "XPath injection occurs when user-supplied data is incorporated into XPath queries
+    without sanitization. An attacker can inject payloads such as ' or '1'='1 or
+    '] | //* | //x['' to manipulate query logic, bypass authentication, or extract
+    XML document content."
+  impact: "Successful XPath injection can bypass authentication, extract sensitive
+    XML data (usernames, passwords, configuration), and enumerate the entire XML
+    document structure."
+  category:
+    name: INJECTION_ATTACKS
+    shortName: Injection
+    displayName: Injection Attacks
+  subCategory: XPATH_INJECTION_BY_QUERY_PARAM
+  severity: HIGH
+  tags:
+    - OWASP top 10
+    - Business logic
+  references:
+    - "https://owasp.org/www-community/attacks/XPATH_Injection"
+    - "https://cwe.mitre.org/data/definitions/91.html"
+  cwe:
+    - CWE-91
+  cve:
+    - CVE-2020-5526
+
+attributes:
+  nature: INTRUSIVE
+  plan: FREE
+  duration: FAST
+
+api_selection_filters:
+  response_code:
+    gte: 200
+    lt: 300
+  method:
+    neq: "OPTIONS"
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts
+
+execute:
+  type: single
+  requests:
+    - req:
+        - add_query_param:
+            username: "' or '1'='1"
+        - add_query_param:
+            username: "'] | //* | //x['"
+        - add_query_param:
+            search: "' or 1=1 or 'a'='"
+        - add_query_param:
+            id: "1' or '1'='1"
+        - add_query_param:
+            query: "' or name()='user' or '"
+
+validate:
+  response_payload:
+    contains_either:
+      - "XPathException"
+      - "XPath"
+      - "javax.xml.xpath"
+      - "System.Xml.XPath"
+      - "xpath"
+      - "XmlException"

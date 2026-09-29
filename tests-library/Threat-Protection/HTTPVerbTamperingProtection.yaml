@@ -1,0 +1,101 @@
+id: HTTP_VERB_TAMPERING_PROTECTION
+info:
+  name: "Threat Protection - HTTP Verb Tampering WAF Evasion"
+  description: "Tests whether the WAF and application correctly handle and reject unusual HTTP methods (TRACE, TRACK, CONNECT, PROPFIND) that should be blocked."
+  details: >
+    "HTTP verb tampering exploits APIs and web servers that improperly handle non-standard
+    HTTP methods. Methods like TRACE, TRACK, PROPFIND, MKCOL, and CONNECT may bypass
+    access controls if the application's security controls only check specific methods.
+    TRACE can enable Cross-Site Tracing (XST) attacks by reflecting cookies back.
+    This test verifies that the WAF blocks these methods with 405 or 403."
+  impact: "Unprotected TRACE/TRACK methods enable Cross-Site Tracing (XST) to steal
+    HttpOnly cookies. Exposed WebDAV methods (PROPFIND, MKCOL) may reveal directory
+    listings and allow unauthorized file uploads. CONNECT tunneling can bypass network
+    security controls."
+  category:
+    name: THREAT_PROTECTION
+    shortName: Threat Protection
+    displayName: Threat Protection
+  subCategory: HTTP_VERB_TAMPERING_PROTECTION
+  severity: MEDIUM
+  tags:
+    - OWASP top 10
+    - Business logic
+  references:
+    - "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/06-Test_HTTP_Methods"
+    - "https://cwe.mitre.org/data/definitions/650.html"
+  cwe:
+    - CWE-650
+    - CWE-16
+  cve:
+    - CVE-2022-22947
+
+attributes:
+  nature: INTRUSIVE
+  plan: FREE
+  duration: FAST
+
+api_selection_filters:
+  response_code:
+    gte: 200
+    lt: 300
+  method:
+    neq: "OPTIONS"
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts
+
+execute:
+  type: single
+  requests:
+    - req:
+        - modify_method: TRACE
+        - modify_method: TRACK
+        - modify_method: PROPFIND
+        - modify_method: MKCOL
+        - modify_method: COPY
+        - modify_method: MOVE
+        - modify_method: LOCK
+        - modify_method: UNLOCK
+
+validate:
+  response_code:
+    gte: 200
+    lt: 300
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden

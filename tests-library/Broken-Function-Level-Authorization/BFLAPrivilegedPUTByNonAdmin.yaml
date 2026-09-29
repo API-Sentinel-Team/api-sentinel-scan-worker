@@ -1,0 +1,121 @@
+id: BFLA_PRIVILEGED_PUT_BY_NON_ADMIN
+info:
+  name: "BFLA by Performing Privileged PUT as Non-Admin User"
+  description: "Tests whether regular authenticated users can update resources (PUT/PATCH) that should be restricted to admin roles."
+  details: >
+    "This test re-issues the intercepted GET request as PUT/PATCH to check if the server
+    enforces write-access control at the function level. Many APIs correctly restrict
+    DELETE but fail to protect PUT/PATCH operations used for configuration or user
+    management updates."
+  impact: "Attackers can modify any record including user roles, account settings, and
+    system configurations, leading to privilege escalation and persistent unauthorized
+    access."
+  category:
+    name: BFLA
+    shortName: BFLA
+    displayName: Broken Function Level Authorization (BFLA)
+  subCategory: BFLA_PRIVILEGED_PUT_BY_NON_ADMIN
+  severity: HIGH
+  tags:
+    - OWASP top 10
+    - Business logic
+  references:
+    - "https://owasp.org/API-Security/editions/2023/en/0xa5-broken-function-level-authorization/"
+    - "https://cwe.mitre.org/data/definitions/285.html"
+  cwe:
+    - CWE-285
+    - CWE-862
+  cve:
+    - CVE-2023-28726
+
+attributes:
+  nature: INTRUSIVE
+  plan: FREE
+  duration: FAST
+
+auth:
+  authenticated: true
+
+api_selection_filters:
+  response_code:
+    gte: 200
+    lt: 300
+  method:
+    eq: "GET"
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts
+  include_roles_access:
+    - MEMBER
+    - VIEWER
+  exclude_roles_access:
+    - ADMIN
+
+execute:
+  type: single
+  requests:
+    - req:
+        - modify_method: PUT
+        - modify_method: PATCH
+
+validate:
+  response_code:
+    gte: 200
+    lt: 300
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts

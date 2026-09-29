@@ -1,7 +1,25 @@
-# API Sentinel scan-worker
+# api-sentinel-scan-worker
 
-Repository initialized for the scan-worker service extraction.
+Active pentest execution service: claims queued scan runs, executes the
+Schemathesis / Nuclei / ZAP engine plans, and persists findings, evidence,
+and artifacts.
 
-Status: **not deployable yet**. The current scan-worker implementation still imports shared backend modules from the committed API baseline. The next migration stage will extract versioned shared contracts/dependencies, add this service's own build and tests, and verify end-to-end operation before deployment.
+## Status: vendored build, decoupling pending
 
-Do not deploy this repository until that migration is complete.
+This repository currently carries a vendored snapshot of the shared runtime
+(`server/`, `migrations/`, `tests-library/`) because the worker still imports
+shared models and helpers from it. The image builds and the worker runs, but
+this is **not yet an independent microservice**: extracting
+`server.modules.test_executor` behind a shared-contracts package is tracked
+as the next stage.
+
+## Build and run
+
+```bash
+docker build -f Dockerfile.scan-worker -t api-sentinel/scan-worker:local .
+docker run --rm api-sentinel/scan-worker:local engines   # engine readiness
+docker compose -f ../api-sentinel-api/docker-compose.yml up scan-worker
+```
+
+Entry point: `python -m server.modules.test_executor.scan_worker` (see
+`infra/scripts/scan-worker-entrypoint.sh`).

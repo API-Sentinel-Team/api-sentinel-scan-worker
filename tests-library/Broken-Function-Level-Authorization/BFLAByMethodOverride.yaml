@@ -1,0 +1,130 @@
+id: BFLA_BY_METHOD_OVERRIDE
+info:
+  name: "BFLA by HTTP Method Override"
+  description: "Tests whether privileged write operations can be invoked by a lower-privileged user using HTTP method override headers such as X-HTTP-Method-Override."
+  details: >
+    "Some APIs honour X-HTTP-Method-Override or X-Method-Override headers to tunnel
+    DELETE/PUT/PATCH through POST requests. A regular user may abuse these headers to
+    invoke admin-only mutating functions, bypassing function-level authorization checks
+    that rely solely on the request method."
+  impact: "Successful exploitation allows an attacker with any valid session to execute
+    privileged functions (resource deletion, state mutation) intended only for administrators,
+    resulting in data loss, privilege escalation, and integrity compromise."
+  category:
+    name: BFLA
+    shortName: BFLA
+    displayName: Broken Function Level Authorization (BFLA)
+  subCategory: BFLA_BY_METHOD_OVERRIDE
+  severity: HIGH
+  tags:
+    - OWASP top 10
+    - Business logic
+    - HackerOne top 10
+  references:
+    - "https://owasp.org/API-Security/editions/2023/en/0xa5-broken-function-level-authorization/"
+    - "https://cwe.mitre.org/data/definitions/285.html"
+  cwe:
+    - CWE-285
+    - CWE-269
+  cve:
+    - CVE-2023-28726
+
+attributes:
+  nature: INTRUSIVE
+  plan: FREE
+  duration: FAST
+
+auth:
+  authenticated: true
+
+api_selection_filters:
+  response_code:
+    gte: 200
+    lt: 300
+  method:
+    eq: "GET"
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts
+
+execute:
+  type: single
+  requests:
+    - req:
+        - modify_method: POST
+          add_header:
+            X-HTTP-Method-Override: "DELETE"
+        - modify_method: POST
+          add_header:
+            X-Method-Override: "DELETE"
+        - modify_method: POST
+          add_header:
+            X-HTTP-Method: "DELETE"
+        - modify_method: POST
+          add_header:
+            X-HTTP-Method-Override: "PUT"
+        - modify_method: POST
+          add_header:
+            X-HTTP-Method-Override: "PATCH"
+
+validate:
+  response_code:
+    gte: 200
+    lt: 300
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts

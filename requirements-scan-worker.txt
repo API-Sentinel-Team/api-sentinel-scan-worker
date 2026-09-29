@@ -1,0 +1,4 @@
+# Extra runtime deps for Dockerfile.scan-worker only.
+# The image installs a pytest-free slice of requirements.txt first, then this file.
+# Schemathesis 4.x requires pytest>=9, which conflicts with the API image pin (8.2.0).
+schemathesis==4.24.3

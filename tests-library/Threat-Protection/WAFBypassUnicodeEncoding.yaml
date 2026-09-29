@@ -1,0 +1,99 @@
+id: WAF_BYPASS_UNICODE_ENCODING
+info:
+  name: "Threat Protection - WAF Bypass via Unicode and Double Encoding"
+  description: "Tests whether the WAF can be bypassed by delivering attack payloads through Unicode normalization, HTML entity encoding, and double URL encoding."
+  details: >
+    "Web Application Firewalls that match attack signatures on raw bytes may miss payloads
+    delivered via Unicode homoglyphs, HTML entity encoding, or double URL encoding.
+    For example, a XSS payload <script> might be encoded as %3Cscript%3E or
+    &#x3C;script&#x3E; to bypass signature matching. This test evaluates whether
+    the WAF normalizes inputs before applying rules."
+  impact: "Successful WAF bypass allows injection attacks (XSS, SQLi, Command Injection)
+    to reach the application backend unfiltered, nullifying the WAF's protective effect
+    and exposing the application to all downstream injection risks."
+  category:
+    name: THREAT_PROTECTION
+    shortName: Threat Protection
+    displayName: Threat Protection
+  subCategory: WAF_BYPASS_UNICODE_ENCODING
+  severity: HIGH
+  tags:
+    - OWASP top 10
+    - Business logic
+    - HackerOne top 10
+  references:
+    - "https://owasp.org/www-community/attacks/Unicode_Encoding"
+    - "https://cwe.mitre.org/data/definitions/116.html"
+  cwe:
+    - CWE-116
+    - CWE-79
+  cve:
+    - CVE-2021-26855
+
+attributes:
+  nature: INTRUSIVE
+  plan: FREE
+  duration: FAST
+
+api_selection_filters:
+  response_code:
+    gte: 200
+    lt: 300
+  method:
+    neq: "OPTIONS"
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts
+
+execute:
+  type: single
+  requests:
+    - req:
+        - add_query_param:
+            search: "%3Cscript%3Ealert(1)%3C%2Fscript%3E"
+        - add_query_param:
+            search: "&#x3C;script&#x3E;alert(1)&#x3C;/script&#x3E;"
+        - add_query_param:
+            search: "%252Fscript%253E%2526lt%253B"
+        - add_query_param:
+            q: "\u003cscript\u003ealert(1)\u003c/script\u003e"
+        - add_query_param:
+            q: "1%20UNION%20SELECT%20NULL--"
+        - add_query_param:
+            q: "1%2520UNION%2520SELECT%2520NULL--"
+
+validate:
+  response_payload:
+    contains_either:
+      - "<script>"
+      - "alert(1)"
+      - "UNION SELECT"
+      - "onerror"
+      - "onload"

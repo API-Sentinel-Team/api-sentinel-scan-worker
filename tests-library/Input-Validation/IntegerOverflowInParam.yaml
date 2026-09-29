@@ -1,0 +1,121 @@
+id: INTEGER_OVERFLOW_IN_PARAM
+info:
+  name: "Input Validation - Integer Overflow via Extreme Values"
+  description: "Tests whether the API handles extremely large integer values that can cause integer overflow in backend processing."
+  details: >
+    "Integer overflow occurs when a numeric input exceeds the storage capacity of the
+    target data type. Sending values like 2147483648 (INT_MAX+1), 9999999999, or
+    922337203685477580 (LONG_MAX) to numeric parameters tests whether the application
+    validates upper bounds. Vulnerable APIs may wrap around to negative values, truncate
+    silently, or throw unhandled exceptions revealing stack traces."
+  impact: "Integer overflow can lead to unexpected application behavior, authentication
+    bypass (e.g., age/credit checks), financial calculation errors, and denial of service
+    via unhandled exceptions."
+  category:
+    name: INPUT_VALIDATION
+    shortName: Input Validation
+    displayName: Input Validation
+  subCategory: INTEGER_OVERFLOW_IN_PARAM
+  severity: MEDIUM
+  tags:
+    - OWASP top 10
+    - Business logic
+  references:
+    - "https://cwe.mitre.org/data/definitions/190.html"
+    - "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/"
+  cwe:
+    - CWE-190
+    - CWE-20
+  cve:
+    - CVE-2022-26134
+
+attributes:
+  nature: INTRUSIVE
+  plan: FREE
+  duration: FAST
+
+api_selection_filters:
+  response_code:
+    gte: 200
+    lt: 300
+  method:
+    neq: "OPTIONS"
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts
+  or:
+    - request_payload:
+        for_one:
+          key:
+            regex: ".*"
+          value:
+            datatype: number
+            extract: numKey
+    - query_param:
+        for_one:
+          key:
+            regex: ".*"
+          value:
+            datatype: number
+            extract: numKey
+
+execute:
+  type: single
+  requests:
+    - req:
+        - modify_body_param:
+            numKey: 2147483648
+        - modify_body_param:
+            numKey: 9999999999
+        - modify_body_param:
+            numKey: 9223372036854775807
+        - modify_body_param:
+            numKey: 99999999999999999999
+        - modify_query_param:
+            numKey: 2147483648
+        - modify_query_param:
+            numKey: 9999999999
+
+validate:
+  response_code:
+    gte: 200
+    lt: 300
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - bad request
+      - validation error

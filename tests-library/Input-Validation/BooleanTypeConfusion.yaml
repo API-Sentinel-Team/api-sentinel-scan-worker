@@ -1,0 +1,122 @@
+id: BOOLEAN_TYPE_CONFUSION
+info:
+  name: "Input Validation - Boolean Type Confusion"
+  description: "Tests whether the API is vulnerable to type confusion by sending boolean values where string or numeric values are expected."
+  details: >
+    "Type confusion attacks send boolean values (true/false) in place of expected
+    string or numeric parameters. Weakly-typed or type-coercing backends (JavaScript,
+    PHP) may interpret true as 1, 'admin', or bypass condition checks. This is
+    particularly dangerous for authentication parameters, role fields, and access flags."
+  impact: "Boolean type confusion can bypass authentication checks (password: true),
+    elevate privileges (isAdmin: true), and cause unexpected behavior in type-coercing
+    language runtimes, leading to unauthorized access."
+  category:
+    name: INPUT_VALIDATION
+    shortName: Input Validation
+    displayName: Input Validation
+  subCategory: BOOLEAN_TYPE_CONFUSION
+  severity: HIGH
+  tags:
+    - OWASP top 10
+    - Business logic
+    - HackerOne top 10
+  references:
+    - "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/"
+    - "https://cwe.mitre.org/data/definitions/843.html"
+  cwe:
+    - CWE-843
+    - CWE-20
+  cve:
+    - CVE-2021-33026
+
+attributes:
+  nature: INTRUSIVE
+  plan: FREE
+  duration: FAST
+
+api_selection_filters:
+  response_code:
+    gte: 200
+    lt: 300
+  method:
+    neq: "OPTIONS"
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts
+  or:
+    - request_payload:
+        for_one:
+          key:
+            regex: "^password$|^pass$|^token$|^otp$|^code$|^secret$"
+          value:
+            datatype: string
+            extract: authKey
+    - request_payload:
+        for_one:
+          key:
+            regex: "^isAdmin$|^is_admin$|^admin$|^role$|^privilege$|^level$"
+          value:
+            extract: roleKey
+
+execute:
+  type: single
+  requests:
+    - req:
+        - modify_body_param:
+            authKey: true
+        - modify_body_param:
+            authKey: 1
+        - modify_body_param:
+            roleKey: true
+        - modify_body_param:
+            roleKey: "true"
+        - add_body_param:
+            isAdmin: true
+        - add_body_param:
+            is_admin: true
+        - add_body_param:
+            admin: true
+
+validate:
+  response_code:
+    gte: 200
+    lt: 300
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - bad request
+      - validation error

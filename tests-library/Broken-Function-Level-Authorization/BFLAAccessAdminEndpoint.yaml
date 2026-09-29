@@ -1,0 +1,128 @@
+id: BFLA_ACCESS_ADMIN_ENDPOINT
+info:
+  name: "BFLA by Accessing Admin-Only Functions"
+  description: "Tests whether admin-only API endpoints (/admin, /management, /internal) are accessible by authenticated non-admin users."
+  details: >
+    "Broken Function Level Authorization occurs when an API fails to enforce role-based
+    access control at the function/endpoint level. A regular authenticated user should
+    receive a 403 Forbidden when accessing admin endpoints. If the server returns 200
+    with a valid response body, the endpoint is vulnerable."
+  impact: "Attackers with a valid low-privilege session can access and invoke admin
+    functions such as user management, system configuration, and data exports, leading
+    to full account takeover and system compromise."
+  category:
+    name: BFLA
+    shortName: BFLA
+    displayName: Broken Function Level Authorization (BFLA)
+  subCategory: BFLA_ACCESS_ADMIN_ENDPOINT
+  severity: CRITICAL
+  tags:
+    - OWASP top 10
+    - Business logic
+    - HackerOne top 10
+  references:
+    - "https://owasp.org/API-Security/editions/2023/en/0xa5-broken-function-level-authorization/"
+    - "https://cwe.mitre.org/data/definitions/285.html"
+  cwe:
+    - CWE-285
+    - CWE-862
+  cve:
+    - CVE-2023-38646
+
+attributes:
+  nature: INTRUSIVE
+  plan: FREE
+  duration: FAST
+
+auth:
+  authenticated: true
+
+api_selection_filters:
+  response_code:
+    gte: 200
+    lt: 300
+  method:
+    neq: "OPTIONS"
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts
+  include_roles_access:
+    - MEMBER
+    - VIEWER
+
+execute:
+  type: single
+  requests:
+    - req:
+        - modify_url: "/admin"
+        - modify_url: "/admin/users"
+        - modify_url: "/admin/settings"
+        - modify_url: "/management"
+        - modify_url: "/management/users"
+        - modify_url: "/internal"
+        - modify_url: "/internal/config"
+        - modify_url: "/superadmin"
+        - modify_url: "/api/admin"
+        - modify_url: "/api/v1/admin"
+
+validate:
+  response_code:
+    gte: 200
+    lt: 300
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts

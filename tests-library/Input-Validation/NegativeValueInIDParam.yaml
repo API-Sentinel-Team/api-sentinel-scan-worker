@@ -1,0 +1,117 @@
+id: NEGATIVE_VALUE_IN_ID_PARAM
+info:
+  name: "Input Validation - Negative Values in ID Parameters"
+  description: "Tests whether the API accepts negative integer values in ID parameters that should only accept positive integers."
+  details: >
+    "Proper input validation requires rejecting nonsensical values for identifier fields.
+    Sending negative integers (e.g., -1, -999) as user IDs, item IDs, or account IDs
+    tests whether the application validates numeric boundaries. Vulnerable APIs may
+    return data for boundary records, trigger SQL errors, or expose internal state."
+  impact: "Acceptance of negative IDs can lead to unexpected data access, integer overflow
+    in downstream systems, and exposure of records at array index 0 or negative
+    offsets in certain database or memory implementations."
+  category:
+    name: INPUT_VALIDATION
+    shortName: Input Validation
+    displayName: Input Validation
+  subCategory: NEGATIVE_VALUE_IN_ID_PARAM
+  severity: MEDIUM
+  tags:
+    - OWASP top 10
+    - Business logic
+  references:
+    - "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/"
+    - "https://cwe.mitre.org/data/definitions/1284.html"
+  cwe:
+    - CWE-1284
+    - CWE-20
+  cve:
+    - CVE-2022-25897
+
+attributes:
+  nature: INTRUSIVE
+  plan: FREE
+  duration: FAST
+
+api_selection_filters:
+  response_code:
+    gte: 200
+    lt: 300
+  method:
+    neq: "OPTIONS"
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts
+  or:
+    - request_payload:
+        for_one:
+          key:
+            regex: "^id$|^ID$|^userId$|^user_id$|^itemId$|^item_id$|^accountId$|^account_id$|^orderId$|^order_id$"
+          value:
+            datatype: number
+            extract: idKey
+    - query_param:
+        for_one:
+          key:
+            regex: "^id$|^ID$|^userId$|^user_id$|^itemId$|^item_id$|^accountId$|^account_id$"
+          value:
+            datatype: number
+            extract: idKey
+
+execute:
+  type: single
+  requests:
+    - req:
+        - modify_body_param:
+            idKey: -1
+        - modify_body_param:
+            idKey: -999
+        - modify_body_param:
+            idKey: -2147483648
+        - modify_query_param:
+            idKey: -1
+        - modify_query_param:
+            idKey: -999
+
+validate:
+  response_code:
+    gte: 200
+    lt: 300
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - bad request

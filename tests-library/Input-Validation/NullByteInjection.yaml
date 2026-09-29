@@ -1,0 +1,112 @@
+id: NULL_BYTE_INJECTION
+info:
+  name: "Input Validation - Null Byte Injection"
+  description: "Tests for null byte injection vulnerabilities where injecting %00 or \0 characters can truncate strings and bypass validation."
+  details: >
+    "Null byte injection exploits the difference between how application-level code
+    (Python, PHP, Java) and C-based libraries handle strings. A null byte (\0) terminates
+    C strings but may be ignored by higher-level parsers. This allows attackers to
+    bypass file extension checks (file.php%00.jpg), truncate input validation, and
+    manipulate file paths."
+  impact: "Null byte injection can bypass file upload restrictions (executing PHP as image),
+    truncate SQL input validation, poison log entries, and bypass security filters,
+    leading to remote code execution and unauthorized file access."
+  category:
+    name: INPUT_VALIDATION
+    shortName: Input Validation
+    displayName: Input Validation
+  subCategory: NULL_BYTE_INJECTION
+  severity: HIGH
+  tags:
+    - OWASP top 10
+    - Business logic
+  references:
+    - "https://owasp.org/www-community/attacks/Null_Byte_Injection"
+    - "https://cwe.mitre.org/data/definitions/626.html"
+  cwe:
+    - CWE-626
+    - CWE-20
+  cve:
+    - CVE-2020-13645
+
+attributes:
+  nature: INTRUSIVE
+  plan: FREE
+  duration: FAST
+
+api_selection_filters:
+  response_code:
+    gte: 200
+    lt: 300
+  method:
+    neq: "OPTIONS"
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts
+  or:
+    - request_payload:
+        for_one:
+          key:
+            regex: "^filename$|^file$|^name$|^path$|^username$|^email$"
+          value:
+            datatype: string
+            extract: inputKey
+
+execute:
+  type: single
+  requests:
+    - req:
+        - modify_body_param:
+            inputKey: "test%00.txt"
+        - modify_body_param:
+            inputKey: "test\x00admin"
+        - modify_body_param:
+            inputKey: "valid.jpg%00.php"
+        - add_query_param:
+            file: "etc/passwd%00.jpg"
+        - add_query_param:
+            path: "config%00"
+
+validate:
+  response_code:
+    gte: 200
+    lt: 300
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - bad request
+      - validation error

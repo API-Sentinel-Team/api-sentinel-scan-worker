@@ -1,0 +1,96 @@
+id: LDAP_INJECTION_BY_QUERY_PARAM
+info:
+  name: "LDAP Injection via Query Parameters"
+  description: "Tests for LDAP injection vulnerabilities by injecting LDAP filter metacharacters into query parameters."
+  details: >
+    "LDAP injection occurs when user-supplied input is embedded in LDAP search filters
+    without proper escaping. Special characters such as *, (, ), \, and NUL can alter
+    LDAP query logic. This test injects classic LDAP payloads into query parameters
+    commonly used in directory-backed authentication or user search functions."
+  impact: "Successful LDAP injection may allow authentication bypass, unauthorized
+    disclosure of directory data (usernames, passwords, group memberships), and
+    in some cases modification of directory entries."
+  category:
+    name: INJECTION_ATTACKS
+    shortName: Injection
+    displayName: Injection Attacks
+  subCategory: LDAP_INJECTION_BY_QUERY_PARAM
+  severity: HIGH
+  tags:
+    - OWASP top 10
+    - Business logic
+  references:
+    - "https://owasp.org/www-community/attacks/LDAP_Injection"
+    - "https://cwe.mitre.org/data/definitions/90.html"
+  cwe:
+    - CWE-90
+  cve:
+    - CVE-2021-25968
+
+attributes:
+  nature: INTRUSIVE
+  plan: FREE
+  duration: FAST
+
+api_selection_filters:
+  response_code:
+    gte: 200
+    lt: 300
+  method:
+    neq: "OPTIONS"
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts
+
+execute:
+  type: single
+  requests:
+    - req:
+        - add_query_param:
+            username: "*"
+        - add_query_param:
+            username: "*)(&"
+        - add_query_param:
+            username: "*)(uid=*))(|(uid=*"
+        - add_query_param:
+            search: "*)(objectClass=*"
+        - add_query_param:
+            filter: ")(cn=*"
+
+validate:
+  response_payload:
+    contains_either:
+      - "LDAP"
+      - "ldap"
+      - "javax.naming"
+      - "NamingException"
+      - "directory"
+      - "objectClass"
+      - "distinguishedName"

