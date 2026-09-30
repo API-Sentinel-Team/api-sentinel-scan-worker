@@ -1,25 +1,34 @@
 # api-sentinel-scan-worker
 
-Active pentest execution service: claims queued scan runs, executes the
-Schemathesis / Nuclei / ZAP engine plans, and persists findings, evidence,
-and artifacts.
+Claims queued scan runs and executes them in an isolated process: the template engine, Schemathesis, Nuclei, ZAP and authorization replay. It is the **only** component that sends attack traffic to targets.
 
-## Status: vendored build, decoupling pending
+Part of API Sentinel. This repo contains **only this service's code**; everything shared
+(database models, migrations, config, tenancy, audit, redaction, pentest policy, scan planning,
+the security-test template library) lives in
+[`api-sentinel-core`](https://github.com/API-Sentinel-Team/api-sentinel-core), installed as the
+`sentinel-core` dependency and pinned to a released tag in `pyproject.toml`.
 
-This repository currently carries a vendored snapshot of the shared runtime
-(`server/`, `migrations/`, `tests-library/`) because the worker still imports
-shared models and helpers from it. The image builds and the worker runs, but
-this is **not yet an independent microservice**: extracting
-`server.modules.test_executor` behind a shared-contracts package is tracked
-as the next stage.
+## Boundaries
 
-## Build and run
+- Never import another service's package. Services cooperate only through the database run
+  queue and Redis pub/sub. `tests/unit/test_service_boundaries.py` enforces this in the
+  api repo; the same rule holds here.
+- Schema changes are made in `api-sentinel-core` (the single owner of migrations), never here.
+
+## Run
 
 ```bash
-docker build -f Dockerfile.scan-worker -t api-sentinel/scan-worker:local .
-docker run --rm api-sentinel/scan-worker:local engines   # engine readiness
-docker compose -f ../api-sentinel-api/docker-compose.yml up scan-worker
+docker run --rm api-sentinel/scan-worker:local engines   # readiness check
+python -m sentinel_worker.modules.test_executor.scan_worker
 ```
 
-Entry point: `python -m server.modules.test_executor.scan_worker` (see
-`infra/scripts/scan-worker-entrypoint.sh`).
+## Develop
+
+```bash
+pip install -e ../api-sentinel-core           # or the pinned tag from pyproject.toml
+pip install --no-deps -e ".[test]"
+DEBUG=true pytest -q
+```
+
+`DEBUG=true` is required by tests: without it `sentinel_core.config` refuses to build settings
+(production validation).

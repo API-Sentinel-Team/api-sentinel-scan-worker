@@ -13,7 +13,7 @@ fi
 
 case "${cmd}" in
   worker)
-    exec python -m server.modules.test_executor.scan_worker "$@"
+    exec python -m sentinel_worker.modules.test_executor.scan_worker "$@"
     ;;
   engines|check-engines)
     status=0
@@ -39,7 +39,7 @@ case "${cmd}" in
     exit "${status}"
     ;;
   -h|--help|help)
-    exec python -m server.modules.test_executor.scan_worker --help
+    exec python -m sentinel_worker.modules.test_executor.scan_worker --help
     ;;
   *)
     # Allow `docker run ... python ...` style overrides via entrypoint replacement.

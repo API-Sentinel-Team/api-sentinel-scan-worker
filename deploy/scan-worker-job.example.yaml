@@ -1,0 +1,68 @@
+# Example: isolated API Sentinel scan worker Job.
+# Build image: ./infra/scripts/build-and-push-scan-worker.sh
+# Replace image, DATABASE_URL secret, and worker identity before applying.
+#
+# The image entrypoint defaults to `worker` (python -m server.modules.test_executor.scan_worker).
+# Engine smoke: docker run --rm <image> engines
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: api-sentinel-scan-worker-
+  namespace: api-sentinel
+  labels:
+    app: api-sentinel-scan-worker
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: api-sentinel-scan-worker
+    spec:
+      restartPolicy: Never
+      serviceAccountName: api-sentinel-scan-worker
+      automountServiceAccountToken: false
+      containers:
+        - name: api-sentinel-scan-worker
+          image: registry.example.com/api-sentinel/scan-worker:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - worker
+            - --max-runs
+            - "1"
+          env:
+            - name: API_SENTINEL_WORKER_ID
+              value: replace-with-worker-id
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: api-sentinel-scan-worker
+                  key: database-url
+            - name: PENTEST_SCAN_WORKER_ISOLATION_MODE
+              value: kubernetes_job
+            - name: PENTEST_SCAN_WORK_DIR
+              value: /tmp/api-sentinel-scan
+            - name: PENTEST_KILL_SWITCH_ENABLED
+              value: "false"
+            - name: DEBUG
+              value: "false"
+            - name: PENTEST_ALLOW_PRIVATE_TARGETS
+              value: "false"
+          resources:
+            # ZAP needs substantially more memory than template-only workers.
+            requests:
+              cpu: "500m"
+              memory: 1Gi
+              ephemeral-storage: 1Gi
+            limits:
+              cpu: "2"
+              memory: 3Gi
+              ephemeral-storage: 4Gi
+          volumeMounts:
+            - name: scan-sandbox
+              mountPath: /tmp/api-sentinel-scan
+      volumes:
+        - name: scan-sandbox
+          emptyDir:
+            sizeLimit: 4Gi
