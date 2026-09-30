@@ -372,7 +372,7 @@ async def _run_agentic_scan_pass(
     entry point, reusing the live engine + real safety guards. Gated upstream by
     AGENTIC_LLM_ENABLED; here we just translate inputs.
     """
-    from sentinel_core.modules.agentic.orchestration import run_agentic_scan_async
+    from sentinel_worker.modules.agentic.orchestration import run_agentic_scan_async
 
     endpoint_dicts = [
         {

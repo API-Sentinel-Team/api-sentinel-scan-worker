@@ -33,7 +33,7 @@ async def test_run_agentic_scan_pass_forwards_test_accounts(monkeypatch):
         return {"enabled": True, "outcome": {"confirmed_findings": []}}
 
     # Patch the orchestration entry the helper imports lazily.
-    import sentinel_core.modules.agentic.orchestration as orch
+    import sentinel_worker.modules.agentic.orchestration as orch
     monkeypatch.setattr(orch, "run_agentic_scan_async", fake_run_agentic_scan_async)
 
     accounts = ["acct-a", "acct-b"]  # identity objects are opaque to this helper

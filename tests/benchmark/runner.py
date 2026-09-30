@@ -132,7 +132,7 @@ async def _run_agentic(corpus: Corpus, *, test_accounts: list[Any] | None = None
     confirmed via authenticated multi-identity replay.
     """
     from sentinel_core.config import settings
-    from sentinel_core.modules.agentic.orchestration import run_agentic_scan_async
+    from sentinel_worker.modules.agentic.orchestration import run_agentic_scan_async
     from sentinel_worker.modules.test_executor.execution_engine import ExecutionEngine
     from sentinel_core.modules.test_executor.wordlist_manager import WordlistManager
 

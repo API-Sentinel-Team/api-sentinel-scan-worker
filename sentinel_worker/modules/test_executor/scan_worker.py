@@ -29,7 +29,7 @@ from sentinel_core.models.core import (
     TestRun,
     Vulnerability,
 )
-from sentinel_core.modules.identity.authorization_replay import (
+from sentinel_worker.modules.identity.authorization_replay import (
     auth_headers_for_account,
     authorization_identity_label,
     authorization_identity_summary,
