@@ -43,7 +43,11 @@ from sentinel_core.modules.test_executor.scan_planning import (
     scan_plan_audit_summary,
     scan_plan_integrity_failure,
 )
-from sentinel_worker.modules.test_executor.scan_worker import heartbeat_claimed_run, normalize_worker_id
+from sentinel_worker.modules.test_executor.scan_worker import (
+    WORKER_HELD_STATUSES,
+    heartbeat_claimed_run,
+    normalize_worker_id,
+)
 from sentinel_core.modules.test_executor.selection_filter import SelectionFilterEngine
 from sentinel_core.modules.test_executor.target_guard import TargetGuard, blocked_endpoint_targets, endpoint_target_url
 from sentinel_core.modules.test_executor.wordlist_manager import WordlistManager
@@ -224,7 +228,7 @@ async def _fail_scan_before_execution(
         update_filters.extend(
             [
                 TestRun.worker_id == worker_id,
-                TestRun.status.in_(["DISPATCHED", "RUNNING"]),
+                TestRun.status.in_(WORKER_HELD_STATUSES),
             ]
         )
     update_result = await db.execute(
@@ -286,7 +290,7 @@ async def _worker_claim_is_current(
             TestRun.id == run_id,
             TestRun.account_id == account_id,
             TestRun.worker_id == worker_id,
-            TestRun.status.in_(["DISPATCHED", "RUNNING"]),
+            TestRun.status.in_(WORKER_HELD_STATUSES),
         )
     )
     return result.scalar_one_or_none() is not None
@@ -475,7 +479,7 @@ async def run_security_tasks(
                 cancel_update_filters.extend(
                     [
                         TestRun.worker_id == worker_id,
-                        TestRun.status.in_(["DISPATCHED", "RUNNING"]),
+                        TestRun.status.in_(WORKER_HELD_STATUSES),
                     ]
                 )
             cancel_update_result = await db.execute(
@@ -797,7 +801,7 @@ async def run_security_tasks(
             run_update_filters.extend(
                 [
                     TestRun.worker_id == worker_id,
-                    TestRun.status.in_(["DISPATCHED", "RUNNING"]),
+                    TestRun.status.in_(WORKER_HELD_STATUSES),
                 ]
             )
         run_update_result = await db.execute(
@@ -1118,7 +1122,7 @@ async def run_security_tasks(
             final_update_filters.extend(
                 [
                     TestRun.worker_id == worker_id,
-                    TestRun.status == "RUNNING",
+                    TestRun.status.in_(WORKER_HELD_STATUSES),
                 ]
             )
         final_update_result = await db.execute(

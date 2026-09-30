@@ -179,6 +179,10 @@ _EXTERNAL_ENGINE_RETEST_TEMPLATE_ID = "EXTERNAL_ENGINE_RETEST"
 _AUTHORIZATION_REPLAY_TEMPLATE_ID = "AUTHORIZATION_REPLAY_MATRIX"
 
 
+# A run stays this worker's while it is dispatched, running, or has a cancel the worker has not yet
+# acknowledged. Treating CANCEL_REQUESTED as "lost" made a user cancel look like a lost claim: the worker
+# stopped, rolled back, and left the run in CANCEL_REQUESTED forever.
+WORKER_HELD_STATUSES = ("DISPATCHED", "RUNNING", "CANCEL_REQUESTED")
 _TERMINAL_RUN_STATUSES = {"COMPLETED", "FAILED", "CANCELED"}
 
 
@@ -1005,7 +1009,7 @@ async def heartbeat_claimed_run(
         filters = [
             TestRun.id == run_id,
             TestRun.worker_id == normalized_worker_id,
-            TestRun.status.in_(["DISPATCHED", "RUNNING"]),
+            TestRun.status.in_(WORKER_HELD_STATUSES),
             TestRun.dispatch_lease_expires_at >= now,
         ]
         if account_id is not None:
@@ -1139,7 +1143,7 @@ async def _execute_external_engine_retest_claimed_run(
                     TestRun.id == claimed.run_id,
                     TestRun.account_id == claimed.account_id,
                     TestRun.worker_id == claimed.worker_id,
-                    TestRun.status.in_(["DISPATCHED", "RUNNING"]),
+                    TestRun.status.in_(WORKER_HELD_STATUSES),
                 )
             )
         ).scalar_one_or_none()
@@ -1327,7 +1331,7 @@ async def _execute_authorization_replay_claimed_run(
                     TestRun.id == claimed.run_id,
                     TestRun.account_id == claimed.account_id,
                     TestRun.worker_id == claimed.worker_id,
-                    TestRun.status.in_(["DISPATCHED", "RUNNING"]),
+                    TestRun.status.in_(WORKER_HELD_STATUSES),
                 )
             )
         ).scalar_one_or_none()
