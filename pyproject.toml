@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "api-sentinel-scan-worker"
-version = "0.3.3"
+version = "0.3.4"
 description = "API Sentinel scan-worker service"
 requires-python = ">=3.11"
 dependencies = [
-  "sentinel-core @ git+https://github.com/API-Sentinel-Team/api-sentinel-core.git@v0.3.2",
+  "sentinel-core @ git+https://github.com/API-Sentinel-Team/api-sentinel-core.git@v0.3.3",
 ]
 
 [project.optional-dependencies]
