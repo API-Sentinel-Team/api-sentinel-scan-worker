@@ -6,8 +6,11 @@ import copy
 import contextlib
 import datetime
 import json
+import logging
 import os
+import random
 import socket
+import time
 import uuid
 from dataclasses import dataclass
 from hashlib import sha256
@@ -2484,6 +2487,25 @@ def _claimed_execution_engine(claimed: ClaimedScanRun) -> str:
     return "templates"
 
 
+logger = logging.getLogger(__name__)
+
+_WORKER_BACKOFF_CAP_SECONDS = 60.0
+_WORKER_HEARTBEAT_SECONDS = 60.0
+
+
+def _poll_failure_delay(consecutive_failures: int, poll_interval_seconds: float) -> float:
+    """Capped exponential backoff with jitter for a failing poll.
+
+    A database/DNS outage is retried calmly, and workers that all lost the database at the same
+    moment do not stampede it the instant it returns.
+    """
+    ceiling = min(
+        _WORKER_BACKOFF_CAP_SECONDS,
+        max(float(poll_interval_seconds), 1.0) * (2 ** min(consecutive_failures, 6)),
+    )
+    return random.uniform(ceiling / 2, ceiling)
+
+
 async def run_worker_loop(
     *,
     db_bind: AsyncEngine | None = None,
@@ -2491,16 +2513,54 @@ async def run_worker_loop(
     worker_id: str | None = None,
     poll_interval_seconds: float = 2.0,
     max_runs: int | None = None,
+    retry_errors: bool | None = None,
 ) -> dict[str, int]:
-    """Continuously execute queued scans; useful for a dedicated worker process."""
+    """Continuously execute queued scans; useful for a dedicated worker process.
+
+    A continuous worker (``max_runs`` unset) survives transient poll failures such as a database
+    restart or a DNS blip: it logs, backs off and retries instead of exiting. A bounded run
+    (``max_runs`` set, as in tests) re-raises so errors are never hidden. ``retry_errors``
+    overrides either default.
+    """
     executed = 0
     claimed_count = 0
     aborted = 0
     failed = 0
     canceled = 0
     idle_cycles = 0
+    retry = (max_runs is None) if retry_errors is None else retry_errors
+    consecutive_failures = 0
+    polls = 0
+    last_beat = time.monotonic()
+    logger.info(
+        "scan worker started worker_id=%s account_id=%s poll_interval=%.1fs",
+        worker_id or "-",
+        account_id if account_id is not None else "-",
+        poll_interval_seconds,
+    )
     while max_runs is None or claimed_count < max_runs:
-        result = await run_pending_scan_once(db_bind=db_bind, account_id=account_id, worker_id=worker_id)
+        try:
+            result = await run_pending_scan_once(db_bind=db_bind, account_id=account_id, worker_id=worker_id)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            if not retry:
+                raise
+            consecutive_failures += 1
+            delay = _poll_failure_delay(consecutive_failures, poll_interval_seconds)
+            logger.error(
+                "scan worker poll failed (%d in a row): %s: %s; retrying in %.1fs",
+                consecutive_failures,
+                type(exc).__name__,
+                Redactor.redact_text(str(exc))[:300],
+                delay,
+            )
+            await asyncio.sleep(delay)
+            continue
+        if consecutive_failures:
+            logger.info("scan worker recovered after %d failed polls", consecutive_failures)
+            consecutive_failures = 0
+        polls += 1
         if result.get("claimed"):
             claimed_count += 1
             status = str(result.get("status") or "")
@@ -2512,12 +2572,20 @@ async def run_worker_loop(
                 failed += 1
             elif status == "canceled":
                 canceled += 1
+            logger.info("scan worker finished run run_id=%s status=%s", result.get("run_id") or "-", status or "-")
             idle_cycles = 0
             continue
 
         idle_cycles += 1
         if max_runs is not None:
             break
+        now = time.monotonic()
+        if now - last_beat >= _WORKER_HEARTBEAT_SECONDS:
+            logger.info(
+                "scan worker alive: polls=%d claimed=%d executed=%d failed=%d canceled=%d",
+                polls, claimed_count, executed, failed, canceled,
+            )
+            last_beat = now
         await asyncio.sleep(max(0.1, poll_interval_seconds))
 
     return {
@@ -2578,6 +2646,12 @@ def _env_float(name: str, default: float) -> float:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_arg_parser().parse_args(argv)
+    # Without this the worker is silent: Python's default drops everything below WARNING, so a
+    # healthy worker looked identical to a dead one.
+    logging.basicConfig(
+        level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
     summary = asyncio.run(
         run_worker_loop(
             account_id=args.account_id,
